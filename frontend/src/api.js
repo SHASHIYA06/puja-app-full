@@ -79,11 +79,11 @@ function saveLocalResidents(residents) {
 
 export const api = {
   async getResidents(searchQuery = '') {
-    if (API_URL) {
-      try {
-        const res = await axios.get(`${API_URL}/api/residents?search=${encodeURIComponent(searchQuery)}`);
-        return res.data;
-      } catch (e) {}
+    try {
+      const res = await axios.get(`${API_URL}/api/residents?search=${encodeURIComponent(searchQuery)}`);
+      if (res && res.data) return res.data;
+    } catch (e) {
+      console.warn("Backend API unavailable for getResidents, using fallback:", e);
     }
     const residents = getLocalResidents();
     if (!searchQuery) return residents;
@@ -98,16 +98,14 @@ export const api = {
   },
 
   async firstLogin(data) {
-    if (API_URL) {
-      try {
-        const res = await axios.post(`${API_URL}/first-login`, data);
-        return res.data;
-      } catch (e) {
-        if (e.response?.data) throw e.response.data;
-      }
+    try {
+      const res = await axios.post(`${API_URL}/api/first-login`, data);
+      if (res && res.data) return res.data;
+    } catch (e) {
+      if (e.response && e.response.data) throw e.response.data;
     }
     const residents = getLocalResidents();
-    const target = residents.find(r => r.flat_number.toLowerCase() === data.flat_number.toLowerCase());
+    const target = residents.find(r => r.flat_number.toLowerCase() === (data.flat_number || '').toLowerCase());
     if (!target) throw { message: `Flat ${data.flat_number} not found in official directory.` };
     
     target.email = data.email || target.email;
@@ -120,16 +118,14 @@ export const api = {
   },
 
   async login(flat_number, password) {
-    if (API_URL) {
-      try {
-        const res = await axios.post(`${API_URL}/login`, { flat_number, password });
-        return res.data;
-      } catch (e) {
-        if (e.response?.data) throw e.response.data;
-      }
+    try {
+      const res = await axios.post(`${API_URL}/api/login`, { flat_number, password });
+      if (res && res.data) return res.data;
+    } catch (e) {
+      if (e.response && e.response.data) throw e.response.data;
     }
     const residents = getLocalResidents();
-    const target = residents.find(r => r.flat_number.toLowerCase() === flat_number.toLowerCase());
+    const target = residents.find(r => r.flat_number.toLowerCase() === (flat_number || '').toLowerCase());
     if (!target) throw { message: 'Invalid flat number or password.' };
     
     const token = 'LOCAL_JWT_' + btoa(JSON.stringify({ flat_number: target.flat_number, time: Date.now() }));
@@ -147,11 +143,13 @@ export const api = {
   },
 
   async getProfile(token, userFlat) {
-    if (API_URL && !token.startsWith('LOCAL_JWT_')) {
+    if (token && !token.startsWith('LOCAL_JWT_')) {
       try {
-        const res = await axios.get(`${API_URL}/user/profile`, { headers: { 'x-access-token': token } });
-        return res.data;
-      } catch (e) {}
+        const res = await axios.get(`${API_URL}/api/user/profile`, { headers: { 'x-access-token': token } });
+        if (res && res.data) return res.data;
+      } catch (e) {
+        console.warn("Backend profile API error:", e);
+      }
     }
     const residents = getLocalResidents();
     const target = residents.find(r => r.flat_number.toLowerCase() === (userFlat || '').toLowerCase()) || residents[0];
@@ -168,12 +166,12 @@ export const api = {
   },
 
   async recordPayment(token, userFlat, amount = 2500, mode = 'UPI', transaction_ref = '') {
-    if (API_URL && !token.startsWith('LOCAL_JWT_')) {
+    if (token && !token.startsWith('LOCAL_JWT_')) {
       try {
-        const res = await axios.post(`${API_URL}/user/payment`, { amount, mode, transaction_ref }, { headers: { 'x-access-token': token } });
-        return res.data;
+        const res = await axios.post(`${API_URL}/api/user/payment`, { amount, mode, transaction_ref }, { headers: { 'x-access-token': token } });
+        if (res && res.data) return res.data;
       } catch (e) {
-        if (e.response?.data) throw e.response.data;
+        if (e.response && e.response.data) throw e.response.data;
       }
     }
     const residents = getLocalResidents();
@@ -240,12 +238,12 @@ export const api = {
   },
 
   async requestCoupon(token, userFlat, num_coupons = 1) {
-    if (API_URL && !token.startsWith('LOCAL_JWT_')) {
+    if (token && !token.startsWith('LOCAL_JWT_')) {
       try {
-        const res = await axios.post(`${API_URL}/user/coupon`, { num_coupons }, { headers: { 'x-access-token': token } });
-        return res.data;
+        const res = await axios.post(`${API_URL}/api/user/coupon`, { num_coupons }, { headers: { 'x-access-token': token } });
+        if (res && res.data) return res.data;
       } catch (e) {
-        if (e.response?.data) throw e.response.data;
+        if (e.response && e.response.data) throw e.response.data;
       }
     }
     const residents = getLocalResidents();
@@ -270,11 +268,11 @@ export const api = {
   },
 
   async getAdminSummary() {
-    if (API_URL) {
-      try {
-        const res = await axios.get(`${API_URL}/admin/summary`);
-        return res.data;
-      } catch (e) {}
+    try {
+      const res = await axios.get(`${API_URL}/api/admin/summary`);
+      if (res && res.data) return res.data;
+    } catch (e) {
+      console.warn("Backend admin summary error:", e);
     }
     const residents = getLocalResidents();
     const total = residents.length;

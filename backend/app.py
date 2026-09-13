@@ -11,12 +11,21 @@ import csv
 import os
 
 app = Flask(__name__)
-app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL', 'sqlite:///ggofa_durga_puja.db')
+
+# Determine database URI (using /tmp on Vercel serverless to avoid read-only filesystem errors)
+db_uri = os.environ.get('DATABASE_URL')
+if not db_uri:
+    if os.environ.get('VERCEL') or os.environ.get('AWS_LAMBDA_FUNCTION_NAME'):
+        db_uri = 'sqlite:////tmp/ggofa_durga_puja.db'
+    else:
+        db_uri = 'sqlite:///ggofa_durga_puja.db'
+
+app.config['SQLALCHEMY_DATABASE_URI'] = db_uri
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'GGOFA_DURGA_PUJA_2026_SECRET')
 
 db = SQLAlchemy(app)
 bcrypt = Bcrypt(app)
-CORS(app)
+CORS(app, resources={r"/*": {"origins": "*"}})
 
 COMMITTEE_NAME = "GGOFA Durga Puja Committee"
 EVENT_NAME = "DURGA PUJA 2026"
@@ -56,7 +65,10 @@ def seed_owners():
     with app.app_context():
         if Resident.query.count() > 0:
             return
-        seed_path = os.path.join(os.path.dirname(__file__), "owners_seed.csv")
+        base_dir = os.path.dirname(os.path.abspath(__file__))
+        seed_path = os.path.join(base_dir, "owners_seed.csv")
+        if not os.path.exists(seed_path):
+            seed_path = os.path.join(os.path.dirname(base_dir), "backend", "owners_seed.csv")
         if not os.path.exists(seed_path):
             return
         with open(seed_path, encoding="utf-8-sig") as f:
@@ -100,6 +112,7 @@ def token_required(f):
     return decorated
 
 @app.route('/health')
+@app.route('/api/health')
 def health():
     return jsonify({
         'status': 'OK',
@@ -108,6 +121,7 @@ def health():
         'timestamp': datetime.datetime.now().isoformat()
     })
 
+@app.route('/residents', methods=['GET'])
 @app.route('/api/residents', methods=['GET'])
 def get_residents():
     query = request.args.get('search', '').strip().lower()
@@ -155,6 +169,7 @@ def get_residents():
     return jsonify(results)
 
 @app.route('/first-login', methods=['POST'])
+@app.route('/api/first-login', methods=['POST'])
 def first_login():
     data = request.json or {}
     flat_num = str(data.get('flat_number', '')).strip()
@@ -184,6 +199,7 @@ def first_login():
     return jsonify({'message': 'Registration successful! You can now log in.'}), 201
 
 @app.route('/login', methods=['POST'])
+@app.route('/api/login', methods=['POST'])
 def login():
     data = request.json or {}
     flat_num = str(data.get('flat_number', '')).strip()
@@ -213,6 +229,7 @@ def login():
     })
 
 @app.route('/user/profile', methods=['GET'])
+@app.route('/api/user/profile', methods=['GET'])
 @token_required
 def get_profile(current_user):
     payment = Payment.query.filter_by(resident_id=current_user.id).first()
@@ -241,6 +258,7 @@ def get_profile(current_user):
     })
 
 @app.route('/user/payment', methods=['POST'])
+@app.route('/api/user/payment', methods=['POST'])
 @token_required
 def record_payment(current_user):
     data = request.json or {}
@@ -268,6 +286,7 @@ def record_payment(current_user):
         'payment_date': p.payment_date
     })
 
+@app.route('/share-receipt/<receipt_number>', methods=['GET'])
 @app.route('/api/share-receipt/<receipt_number>', methods=['GET'])
 def share_receipt_links(receipt_number):
     p = Payment.query.filter_by(receipt_number=receipt_number).first()
@@ -290,7 +309,6 @@ def share_receipt_links(receipt_number):
         f"🌺 *May Goddess Durga Bless You & Your Family!*"
     )
     
-    # Format phone number for WhatsApp
     phone_clean = ''.join(filter(str.isdigit, r.contact or ''))
     if len(phone_clean) == 10:
         phone_clean = "91" + phone_clean
@@ -311,6 +329,7 @@ def share_receipt_links(receipt_number):
     })
 
 @app.route('/user/coupon', methods=['POST'])
+@app.route('/api/user/coupon', methods=['POST'])
 @token_required
 def request_coupon(current_user):
     data = request.json or {}
@@ -343,6 +362,7 @@ def request_coupon(current_user):
     })
 
 @app.route('/admin/summary')
+@app.route('/api/admin/summary')
 def admin_summary():
     residents = Resident.query.all()
     total_residents = len(residents)
