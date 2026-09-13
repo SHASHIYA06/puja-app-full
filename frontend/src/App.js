@@ -4,11 +4,16 @@ import Dashboard from './Dashboard';
 import ResidentDirectory from './ResidentDirectory';
 import AdminPanel from './AdminPanel';
 import { api } from './api';
+import { DURGA_IMAGE_BASE64 } from './durga_b64';
+import { translations } from './i18n';
 
 function App() {
   const [token, setToken] = useState(localStorage.getItem('ggofa_token') || '');
   const [user, setUser] = useState(null);
   const [currentTab, setCurrentTab] = useState('HOME'); // HOME, DIRECTORY, ADMIN
+  const [lang, setLang] = useState(localStorage.getItem('ggofa_lang') || 'EN'); // EN or BN
+
+  const t = translations[lang] || translations.EN;
 
   useEffect(() => {
     if (token) {
@@ -18,6 +23,12 @@ function App() {
       }).catch(() => {});
     }
   }, [token]);
+
+  function toggleLanguage() {
+    const nextLang = lang === 'EN' ? 'BN' : 'EN';
+    setLang(nextLang);
+    localStorage.setItem('ggofa_lang', nextLang);
+  }
 
   function saveToken(tok) {
     localStorage.setItem('ggofa_token', tok);
@@ -46,10 +57,10 @@ function App() {
       {/* Main Top Header Navbar */}
       <header className="main-header glass-card">
         <div className="header-brand" onClick={() => setCurrentTab('HOME')}>
-          <img src="/maa_durga.jpg" alt="Maa Durga" className="brand-logo-img" />
+          <img src={DURGA_IMAGE_BASE64} alt="Maa Durga" className="brand-logo-img" />
           <div className="brand-text">
-            <h1>GGOFA DURGA PUJA 2026</h1>
-            <p>Official Society Management & Contribution Portal</p>
+            <h1>{t.headerTitle}</h1>
+            <p>{t.headerSubtitle}</p>
           </div>
         </div>
 
@@ -58,21 +69,26 @@ function App() {
             className={`nav-btn ${currentTab === 'HOME' ? 'active' : ''}`}
             onClick={() => setCurrentTab('HOME')}
           >
-            {token ? '🏠 Resident Portal' : '🔑 Sign In / Activate'}
+            {token ? t.navHome : t.navLogin}
           </button>
 
           <button 
             className={`nav-btn ${currentTab === 'DIRECTORY' ? 'active' : ''}`}
             onClick={() => setCurrentTab('DIRECTORY')}
           >
-            🏢 Resident Directory
+            {t.navDirectory}
           </button>
 
           <button 
             className={`nav-btn ${currentTab === 'ADMIN' ? 'active' : ''}`}
             onClick={() => setCurrentTab('ADMIN')}
           >
-            👑 Committee Admin
+            {t.navAdmin}
+          </button>
+
+          {/* Bilingual English / Bengali Switcher */}
+          <button className="lang-toggle-btn" onClick={toggleLanguage}>
+            🌐 {lang === 'EN' ? 'বাংলা' : 'English'}
           </button>
         </nav>
       </header>
@@ -80,23 +96,21 @@ function App() {
       {/* Countdown / Festive Greeting Banner */}
       <div className="greeting-banner glass-card">
         <span className="sparkle">✨</span>
-        <p>
-          <strong>Subho Sharadiya 2026!</strong> GGOFA Durga Puja Celebration & Prasad Registration is Live!
-        </p>
+        <p>{t.greeting}</p>
         <span className="sparkle">✨</span>
       </div>
 
       {/* Main Container Area */}
       <main className="main-content">
         {currentTab === 'DIRECTORY' ? (
-          <ResidentDirectory />
+          <ResidentDirectory lang={lang} />
         ) : currentTab === 'ADMIN' ? (
-          <AdminPanel />
+          <AdminPanel lang={lang} />
         ) : (
           !token ? (
-            <Auth setToken={saveToken} setUser={setUser} />
+            <Auth setToken={saveToken} setUser={setUser} lang={lang} />
           ) : (
-            <Dashboard token={token} onLogout={logout} />
+            <Dashboard token={token} lang={lang} onLogout={logout} />
           )
         )}
       </main>
