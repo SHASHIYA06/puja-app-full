@@ -35,7 +35,7 @@ class Resident(db.Model):
 class Payment(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     resident_id = db.Column(db.Integer, db.ForeignKey('resident.id'))
-    amount = db.Column(db.Integer, default=500)
+    amount = db.Column(db.Integer, default=2500)
     payment_mode = db.Column(db.String(30), default='UPI')
     payment_date = db.Column(db.String(30))
     receipt_number = db.Column(db.String(50), unique=True)
@@ -246,14 +246,14 @@ def record_payment(current_user):
     data = request.json or {}
     existing = Payment.query.filter_by(resident_id=current_user.id).first()
     if existing:
-        return jsonify({'message': 'Payment has already been recorded.', 'receipt_number': existing.receipt_number}), 200
+        return jsonify({'message': 'Payment already recorded', 'receipt_number': existing.receipt_number}), 200
 
     now_str = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     receipt_num = f"GGOFA-2026-F{current_user.flat_number}-{int(datetime.datetime.now().timestamp())}"
     
     p = Payment(
         resident_id=current_user.id,
-        amount=int(data.get('amount', 500)),
+        amount=int(data.get('amount', 2500)),
         payment_mode=data.get('mode', 'UPI'),
         payment_date=now_str,
         receipt_number=receipt_num,
@@ -266,6 +266,48 @@ def record_payment(current_user):
         'receipt_number': p.receipt_number,
         'amount': p.amount,
         'payment_date': p.payment_date
+    })
+
+@app.route('/api/share-receipt/<receipt_number>', methods=['GET'])
+def share_receipt_links(receipt_number):
+    p = Payment.query.filter_by(receipt_number=receipt_number).first()
+    if not p:
+        return jsonify({'message': 'Receipt not found'}), 404
+    r = Resident.query.get(p.resident_id)
+    
+    msg_text = (
+        f"🪔 *GGOFA DURGA PUJA COMMITTEE 2026* 🪔\n"
+        f"*OFFICIAL CONTRIBUTION RECEIPT*\n"
+        f"━━━━━━━━━━━━━━━━━━━━━\n"
+        f"📄 *Receipt No:* {p.receipt_number}\n"
+        f"🏢 *Flat No:* {r.flat_number} (Phase {r.phase}, Block {r.block})\n"
+        f"👤 *Owner:* {r.owner_name}\n"
+        f"💰 *Amount Paid:* ₹{p.amount}/-\n"
+        f"💳 *Mode:* {p.payment_mode} (Txn: {p.transaction_ref})\n"
+        f"📅 *Date:* {p.payment_date}\n"
+        f"━━━━━━━━━━━━━━━━━━━━━\n"
+        f"✨ *Status:* Payment Verified & Recorded!\n"
+        f"🌺 *May Goddess Durga Bless You & Your Family!*"
+    )
+    
+    # Format phone number for WhatsApp
+    phone_clean = ''.join(filter(str.isdigit, r.contact or ''))
+    if len(phone_clean) == 10:
+        phone_clean = "91" + phone_clean
+        
+    import urllib.parse
+    encoded = urllib.parse.quote(msg_text)
+    
+    wa_url = f"https://wa.me/{phone_clean}?text={encoded}" if phone_clean else f"https://wa.me/?text={encoded}"
+    sms_url = f"sms:{phone_clean}?body={encoded}" if phone_clean else f"sms:?body={encoded}"
+    
+    return jsonify({
+        'receipt_number': p.receipt_number,
+        'owner_name': r.owner_name,
+        'contact': r.contact,
+        'whatsapp_url': wa_url,
+        'sms_url': sms_url,
+        'message_text': msg_text
     })
 
 @app.route('/user/coupon', methods=['POST'])
@@ -299,45 +341,6 @@ def request_coupon(current_user):
         'num_coupons': c.num_coupons,
         'coupon_code': c.coupon_code
     })
-
-@app.route('/user/receipt/<receipt_number>')
-def download_receipt(receipt_number):
-    p = Payment.query.filter_by(receipt_number=receipt_number).first()
-    if not p:
-        return jsonify({'message': 'Receipt not found'}), 404
-
-    current_user = Resident.query.get(p.resident_id)
-    pdf = FPDF()
-    pdf.add_page()
-    
-    # Header
-    pdf.set_font("Arial", 'B', 16)
-    pdf.cell(0, 10, COMMITTEE_NAME, ln=True, align='C')
-    pdf.set_font("Arial", 'B', 14)
-    pdf.cell(0, 8, f"OFFICIAL PAYMENT RECEIPT - {EVENT_NAME}", ln=True, align='C')
-    pdf.ln(5)
-
-    pdf.set_font("Arial", size=11)
-    pdf.cell(0, 8, f"Receipt No: {p.receipt_number}", ln=True)
-    pdf.cell(0, 8, f"Date: {p.payment_date}", ln=True)
-    pdf.cell(0, 8, f"Flat Number: {current_user.flat_number}", ln=True)
-    pdf.cell(0, 8, f"Owner Name: {current_user.owner_name}", ln=True)
-    pdf.cell(0, 8, f"Phase: {current_user.phase}  |  Block: {current_user.block}", ln=True)
-    pdf.cell(0, 8, f"Contact: {current_user.contact}", ln=True)
-    pdf.cell(0, 8, f"Payment Mode: {p.payment_mode}", ln=True)
-    pdf.cell(0, 8, f"Transaction Ref: {p.transaction_ref}", ln=True)
-    pdf.set_font("Arial", 'B', 12)
-    pdf.cell(0, 10, f"Contribution Amount: Rs. {p.amount}/-", ln=True)
-    pdf.ln(5)
-    
-    pdf.set_font("Arial", 'I', 10)
-    pdf.cell(0, 8, "May Goddess Durga Bless You and Your Family with Peace, Health & Prosperity!", ln=True, align='C')
-    pdf.cell(0, 6, "GGOFA Durga Puja Committee 2026 - Authorized Seal & Signature", ln=True, align='C')
-
-    stream = BytesIO()
-    pdf.output(stream)
-    stream.seek(0)
-    return send_file(stream, download_name=f"{p.receipt_number}.pdf", as_attachment=True)
 
 @app.route('/admin/summary')
 def admin_summary():

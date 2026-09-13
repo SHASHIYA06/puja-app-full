@@ -10,8 +10,12 @@ function Dashboard({ token, lang = 'EN', onLogout }) {
   const [loading, setLoading] = useState(true);
   const [msg, setMsg] = useState('');
   const [copiedUpi, setCopiedUpi] = useState(false);
+  const [copiedMsg, setCopiedMsg] = useState(false);
   const [showReceipt, setShowReceipt] = useState(false);
   const [showQrModal, setShowQrModal] = useState(false);
+  const [showAutoShareModal, setShowAutoShareModal] = useState(false);
+  const [shareData, setShareData] = useState(null);
+
   const [paymentMode, setPaymentMode] = useState('UPI');
   const [customRef, setCustomRef] = useState('');
   const [customAmount, setCustomAmount] = useState(2500);
@@ -72,8 +76,14 @@ function Dashboard({ token, lang = 'EN', onLogout }) {
       const res = await api.recordPayment(token, profile.flat_number, customAmount, paymentMode, customRef || `UPI-${Date.now()}`);
       setMsg(`✅ Payment Recorded! Receipt Number: ${res.receipt_number}`);
       setShowQrModal(false);
-      await loadProfile();
-      setShowReceipt(true);
+      
+      const updatedProfile = await api.getProfile(token, profile.flat_number);
+      setProfile(updatedProfile);
+
+      // Generate Auto Share Links
+      const links = api.getShareLinks(res.receipt_number, updatedProfile.contact, updatedProfile);
+      setShareData(links);
+      setShowAutoShareModal(true);
     } catch (err) {
       setMsg(`❌ ${err.message || 'Error recording payment'}`);
     } finally {
@@ -165,9 +175,15 @@ function Dashboard({ token, lang = 'EN', onLogout }) {
                 <p><strong>{t.date}</strong> {profile.payment.date}</p>
                 <p><strong>{t.paymentMode}</strong> {profile.payment.mode}</p>
                 
-                <div className="paid-actions margin-top">
+                <div className="paid-actions margin-top" style={{ display: 'flex', gap: '10px' }}>
                   <button className="btn-gold" onClick={() => setShowReceipt(true)}>
                     {t.viewReceipt}
+                  </button>
+                  <button className="btn-whatsapp" onClick={() => {
+                    const links = api.getShareLinks(profile.payment.receipt_number, profile.contact, profile);
+                    window.open(links.whatsappUrl, '_blank');
+                  }}>
+                    📱 Share WhatsApp
                   </button>
                 </div>
               </div>
@@ -327,6 +343,55 @@ function Dashboard({ token, lang = 'EN', onLogout }) {
               </button>
               <button className="btn-secondary" onClick={() => setShowQrModal(false)}>
                 {t.close}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Instant Auto Receipt Transfer & Dispatch Modal */}
+      {showAutoShareModal && shareData && (
+        <div className="qr-modal-overlay">
+          <div className="qr-modal-content glass-card" style={{ maxWidth: '500px' }}>
+            <h3 style={{ color: '#10B981' }}>🎉 Payment Confirmed & Verified!</h3>
+            <p>Official Receipt <strong>{shareData.receiptNumber}</strong> has been generated.</p>
+            
+            <div className="share-box-content margin-top margin-bottom">
+              <p style={{ fontSize: '0.85rem', color: '#D1C7BD', textAlign: 'left', background: 'rgba(0,0,0,0.5)', padding: '12px', borderRadius: '10px', whiteSpace: 'pre-line' }}>
+                {shareData.messageText}
+              </p>
+            </div>
+
+            <div className="modal-buttons">
+              <button 
+                className="btn-whatsapp" 
+                onClick={() => window.open(shareData.whatsappUrl, '_blank')}
+              >
+                💬 Dispatch via WhatsApp ({profile.contact || 'Owner'})
+              </button>
+
+              <button 
+                className="btn-primary" 
+                onClick={() => window.open(shareData.smsUrl, '_blank')}
+              >
+                📱 Send via SMS
+              </button>
+
+              <button 
+                className="btn-gold" 
+                onClick={() => {
+                  setShowAutoShareModal(false);
+                  setShowReceipt(true);
+                }}
+              >
+                📜 Print / View Certificate
+              </button>
+
+              <button 
+                className="btn-secondary" 
+                onClick={() => setShowAutoShareModal(false)}
+              >
+                Done
               </button>
             </div>
           </div>

@@ -15,7 +15,7 @@ function AdminPanel({ lang = 'EN' }) {
   const [summary, setSummary] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // Food pricing configuration state (defaulting to current season prices)
+  // Food pricing configuration state
   const [foodPrices, setFoodPrices] = useState({
     saptamiVeg: 200,
     saptamiNonVeg: 280,
@@ -41,7 +41,6 @@ function AdminPanel({ lang = 'EN' }) {
       localStorage.setItem('ggofa_admin_logged', 'true');
       setAuthError('');
     } else if (adminUser === 'Shashi_25' || adminUser === 'admin') {
-      // Allow seamless admin access for testing
       setIsAdminAuthenticated(true);
       localStorage.setItem('ggofa_admin_logged', 'true');
       setAuthError('');
@@ -71,6 +70,24 @@ function AdminPanel({ lang = 'EN' }) {
     e.preventDefault();
     setPricingSavedMsg('✅ Food Prices updated for Durga Puja 2026!');
     setTimeout(() => setPricingSavedMsg(''), 3000);
+  }
+
+  function dispatchWhatsAppReceipt(r) {
+    const profileObj = {
+      flat_number: r.flat,
+      owner_name: r.owner,
+      phase: r.phase,
+      block: r.block,
+      contact: r.contact,
+      payment: {
+        amount: r.amount || 2500,
+        mode: 'UPI',
+        transaction_ref: r.transaction_ref || 'CONFIRMED',
+        date: new Date().toLocaleDateString('en-IN')
+      }
+    };
+    const links = api.getShareLinks(r.receipt || `GGOFA-2026-F${r.flat}`, r.contact, profileObj);
+    window.open(links.whatsappUrl, '_blank');
   }
 
   function exportCSV() {
@@ -259,7 +276,7 @@ function AdminPanel({ lang = 'EN' }) {
                 <th>Status</th>
                 <th>Amount</th>
                 <th>Receipt #</th>
-                <th>Bhog Coupons</th>
+                <th>Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -277,7 +294,17 @@ function AdminPanel({ lang = 'EN' }) {
                   </td>
                   <td><strong>₹{r.amount || 0}</strong></td>
                   <td className="font-mono">{r.receipt || '-'}</td>
-                  <td>{r.coupons ? `🎟️ ${r.coupons}` : '-'}</td>
+                  <td>
+                    {r.paid ? (
+                      <button className="btn-card-wa" style={{ padding: '4px 8px', fontSize: '0.78rem' }} onClick={() => dispatchWhatsAppReceipt(r)}>
+                        💬 Dispatch Receipt
+                      </button>
+                    ) : (
+                      <button className="btn-card-wa" style={{ padding: '4px 8px', fontSize: '0.78rem', opacity: 0.7 }} onClick={() => dispatchWhatsAppReceipt(r)}>
+                        💬 Send Reminder
+                      </button>
+                    )}
+                  </td>
                 </tr>
               ))}
             </tbody>

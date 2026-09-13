@@ -201,6 +201,44 @@ export const api = {
     };
   },
 
+  getShareLinks(receiptNumber, contact, profileData = {}) {
+    const flat = profileData.flat_number || '';
+    const owner = profileData.owner_name || '';
+    const amt = profileData.payment?.amount || 2500;
+    const mode = profileData.payment?.mode || 'UPI';
+    const txRef = profileData.payment?.transaction_ref || '';
+    const date = profileData.payment?.date || new Date().toLocaleDateString('en-IN');
+
+    const msg = (
+      `🪔 *GGOFA DURGA PUJA COMMITTEE 2026* 🪔\n` +
+      `*OFFICIAL CONTRIBUTION RECEIPT*\n` +
+      `━━━━━━━━━━━━━━━━━━━━━\n` +
+      `📄 *Receipt No:* ${receiptNumber}\n` +
+      `🏢 *Flat No:* ${flat}\n` +
+      `👤 *Owner Name:* ${owner}\n` +
+      `💰 *Amount Paid:* ₹${amt}/-\n` +
+      `💳 *Payment Mode:* ${mode} (Ref: ${txRef})\n` +
+      `📅 *Payment Date:* ${date}\n` +
+      `━━━━━━━━━━━━━━━━━━━━━\n` +
+      `✨ *Status:* Payment Verified & Recorded!\n` +
+      `🌺 *May Goddess Durga Bless You & Your Family!*`
+    );
+
+    const cleanPhone = (contact || '').replace(/[^0-9]/g, '');
+    const phoneFormatted = cleanPhone.length === 10 ? '91' + cleanPhone : cleanPhone;
+    const encoded = encodeURIComponent(msg);
+
+    const waUrl = phoneFormatted ? `https://wa.me/${phoneFormatted}?text=${encoded}` : `https://wa.me/?text=${encoded}`;
+    const smsUrl = phoneFormatted ? `sms:${phoneFormatted}?body=${encoded}` : `sms:?body=${encoded}`;
+
+    return {
+      receiptNumber,
+      messageText: msg,
+      whatsappUrl: waUrl,
+      smsUrl: smsUrl
+    };
+  },
+
   async requestCoupon(token, userFlat, num_coupons = 1) {
     if (API_URL && !token.startsWith('LOCAL_JWT_')) {
       try {
