@@ -9,6 +9,7 @@ function Dashboard({ token, lang = 'EN', onLogout }) {
   const [profile, setProfile] = useState({});
   const [loading, setLoading] = useState(true);
   const [msg, setMsg] = useState('');
+  const [copiedUpi, setCopiedUpi] = useState(false);
   const [showReceipt, setShowReceipt] = useState(false);
   const [showQrModal, setShowQrModal] = useState(false);
   const [paymentMode, setPaymentMode] = useState('UPI');
@@ -49,6 +50,19 @@ function Dashboard({ token, lang = 'EN', onLogout }) {
     } finally {
       setLoading(false);
     }
+  }
+
+  function copyToClipboard(text) {
+    navigator.clipboard.writeText(text);
+    setCopiedUpi(true);
+    setTimeout(() => setCopiedUpi(false), 2500);
+  }
+
+  function updateFoodQty(key, delta) {
+    setFoodSelection(prev => ({
+      ...prev,
+      [key]: Math.max(0, (prev[key] || 0) + delta)
+    }));
   }
 
   async function handlePay() {
@@ -131,11 +145,16 @@ function Dashboard({ token, lang = 'EN', onLogout }) {
               <span className="note">{t.minContribution}</span>
             </div>
 
-            {/* Official ICICI UPI Payment Box */}
+            {/* Official ICICI UPI Payment Box with Copy Button */}
             <div className="icici-upi-card">
               <h4>🏦 Official Bank & UPI Details</h4>
-              <p><strong>{t.upiIdLabel}</strong> <code className="highlight-code">eazypay.ntb1100085519@icici</code></p>
-              <p><strong>{t.accountLabel}</strong> <code>XXXXXXXXXX0039</code></p>
+              <div className="copy-row">
+                <span><strong>{t.upiIdLabel}</strong> <code className="highlight-code">eazypay.ntb1100085519@icici</code></span>
+                <button className="btn-copy" onClick={() => copyToClipboard('eazypay.ntb1100085519@icici')}>
+                  {copiedUpi ? 'Copied! ✅' : '📋 Copy'}
+                </button>
+              </div>
+              <p style={{ marginTop: '8px' }}><strong>{t.accountLabel}</strong> <code>XXXXXXXXXX0039</code></p>
               <p><strong>{t.beneficiaryLabel}</strong> Gurukul Durga Puja Committee</p>
             </div>
 
@@ -182,7 +201,7 @@ function Dashboard({ token, lang = 'EN', onLogout }) {
           </div>
         </div>
 
-        {/* Card 2: Food Coupon Booking System */}
+        {/* Card 2: Bhog & Food Coupon Booking System */}
         <div className="dash-card glass-card purple-glow 3d-tilt">
           <div className="card-header">
             <h3>{t.bhogTitle}</h3>
@@ -215,26 +234,48 @@ function Dashboard({ token, lang = 'EN', onLogout }) {
                 <p className="sub-instruction">Select Bhog Coupons for Puja Days:</p>
 
                 <div className="food-day-row">
-                  <span>Saptami (Veg ₹200 / Non-Veg ₹280):</span>
-                  <input type="number" min="0" value={foodSelection.saptamiVeg} onChange={e => setFoodSelection({...foodSelection, saptamiVeg: parseInt(e.target.value)||0})} placeholder="Veg" />
-                  <input type="number" min="0" value={foodSelection.saptamiNonVeg} onChange={e => setFoodSelection({...foodSelection, saptamiNonVeg: parseInt(e.target.value)||0})} placeholder="Non-Veg" />
+                  <span>Saptami Veg (₹200):</span>
+                  <div className="qty-counter">
+                    <button className="qty-btn" onClick={() => updateFoodQty('saptamiVeg', -1)}>-</button>
+                    <span>{foodSelection.saptamiVeg}</span>
+                    <button className="qty-btn" onClick={() => updateFoodQty('saptamiVeg', 1)}>+</button>
+                  </div>
+                </div>
+
+                <div className="food-day-row">
+                  <span>Saptami Non-Veg (₹280):</span>
+                  <div className="qty-counter">
+                    <button className="qty-btn" onClick={() => updateFoodQty('saptamiNonVeg', -1)}>-</button>
+                    <span>{foodSelection.saptamiNonVeg}</span>
+                    <button className="qty-btn" onClick={() => updateFoodQty('saptamiNonVeg', 1)}>+</button>
+                  </div>
                 </div>
 
                 <div className="food-day-row">
                   <span>Astami Bhog (₹180):</span>
-                  <input type="number" min="0" value={foodSelection.astami} onChange={e => setFoodSelection({...foodSelection, astami: parseInt(e.target.value)||0})} placeholder="Qty" />
+                  <div className="qty-counter">
+                    <button className="qty-btn" onClick={() => updateFoodQty('astami', -1)}>-</button>
+                    <span>{foodSelection.astami}</span>
+                    <button className="qty-btn" onClick={() => updateFoodQty('astami', 1)}>+</button>
+                  </div>
                 </div>
 
                 <div className="food-day-row">
-                  <span>Navami (Veg ₹200 / Non-Veg ₹280):</span>
-                  <input type="number" min="0" value={foodSelection.navamiVeg} onChange={e => setFoodSelection({...foodSelection, navamiVeg: parseInt(e.target.value)||0})} placeholder="Veg" />
-                  <input type="number" min="0" value={foodSelection.navamiNonVeg} onChange={e => setFoodSelection({...foodSelection, navamiNonVeg: parseInt(e.target.value)||0})} placeholder="Non-Veg" />
+                  <span>Navami Non-Veg (₹280):</span>
+                  <div className="qty-counter">
+                    <button className="qty-btn" onClick={() => updateFoodQty('navamiNonVeg', -1)}>-</button>
+                    <span>{foodSelection.navamiNonVeg}</span>
+                    <button className="qty-btn" onClick={() => updateFoodQty('navamiNonVeg', 1)}>+</button>
+                  </div>
                 </div>
 
                 <div className="food-day-row">
-                  <span>Dashami (Veg ₹210 / Non-Veg ₹290):</span>
-                  <input type="number" min="0" value={foodSelection.dashamiVeg} onChange={e => setFoodSelection({...foodSelection, dashamiVeg: parseInt(e.target.value)||0})} placeholder="Veg" />
-                  <input type="number" min="0" value={foodSelection.dashamiNonVeg} onChange={e => setFoodSelection({...foodSelection, dashamiNonVeg: parseInt(e.target.value)||0})} placeholder="Non-Veg" />
+                  <span>Dashami Non-Veg (₹290):</span>
+                  <div className="qty-counter">
+                    <button className="qty-btn" onClick={() => updateFoodQty('dashamiNonVeg', -1)}>-</button>
+                    <span>{foodSelection.dashamiNonVeg}</span>
+                    <button className="qty-btn" onClick={() => updateFoodQty('dashamiNonVeg', 1)}>+</button>
+                  </div>
                 </div>
 
                 <button 
