@@ -1,0 +1,26 @@
+# Node dependencies
+node_modules/
+frontend/node_modules/
+
+# Production builds
+build/
+frontend/build/
+
+# Environment variables
+.env
+frontend/.env
+*.env.local
+
+# Python
+__pycache__/
+backend/__pycache__/
+*.pyc
+*.db
+backend/*.db
+
+# Logs
+*.log
+npm-debug.log*
+
+# System files
+.DS_Store
