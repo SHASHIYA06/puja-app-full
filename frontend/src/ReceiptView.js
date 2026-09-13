@@ -1,4 +1,5 @@
 import React, { useRef } from 'react';
+import { DURGA_IMAGE_BASE64 } from './durga_b64';
 
 function ReceiptView({ profile, payment, onClose }) {
   const printRef = useRef(null);
@@ -7,18 +8,17 @@ function ReceiptView({ profile, payment, onClose }) {
 
   const receiptNum = payment.receipt_number || `GGOFA-2026-F${profile.flat_number}-DEMO`;
   const paymentDate = payment.date || new Date().toLocaleDateString();
-  const amount = payment.amount || 500;
-  const transactionRef = payment.transaction_ref || 'UPI-REF-OK';
+  const amount = payment.amount || 2500;
+  const transactionRef = payment.transaction_ref || `UPI${Date.now()}`;
   const mode = payment.mode || 'UPI';
 
-  // Function to convert amount to words
   function numberToWords(num) {
-    if (num === 500) return 'Five Hundred Rupees Only';
-    if (num === 1000) return 'One Thousand Rupees Only';
+    if (num === 2500) return 'Two Thousand Five Hundred Rupees Only';
+    if (num === 5000) return 'Five Thousand Rupees Only';
+    if (num === 10000) return 'Ten Thousand Rupees Only';
     return `${num} Rupees Only`;
   }
 
-  // Handle WhatsApp Receipt Sharing
   function shareOnWhatsApp() {
     const text = `🪔 *GGOFA DURGA PUJA COMMITTEE 2026* 🪔\n` +
       `*OFFICIAL PAYMENT RECEIPT*\n` +
@@ -26,18 +26,17 @@ function ReceiptView({ profile, payment, onClose }) {
       `📄 *Receipt No:* ${receiptNum}\n` +
       `🏢 *Flat No:* ${profile.flat_number} (Phase ${profile.phase}, Block ${profile.block})\n` +
       `👤 *Owner:* ${profile.owner_name}\n` +
-      `💰 *Amount Paid:* ₹${amount}\n` +
+      `💰 *Amount Paid:* ₹${amount}/-\n` +
       `💳 *Mode:* ${mode} (Txn: ${transactionRef})\n` +
       `📅 *Date:* ${paymentDate}\n` +
       `━━━━━━━━━━━━━━━━━━━━━\n` +
-      `✨ *Status:* Payment Verified & Receipt Recorded!\n` +
+      `✨ *Status:* Payment Verified & Official Receipt Issued!\n` +
       `🌺 *May Maa Durga Bless You and Your Family!*`;
 
     const encodedText = encodeURIComponent(text);
     window.open(`https://wa.me/?text=${encodedText}`, '_blank');
   }
 
-  // Handle Print / PDF Download
   function handlePrint() {
     window.print();
   }
@@ -47,7 +46,7 @@ function ReceiptView({ profile, payment, onClose }) {
       <div className="receipt-modal-content">
         <div className="receipt-actions-top no-print">
           <button className="btn-gold" onClick={handlePrint}>
-            🖨️ Print / Save PDF
+            🖨️ Print / Download PDF
           </button>
           <button className="btn-whatsapp" onClick={shareOnWhatsApp}>
             📱 Send via WhatsApp
@@ -59,24 +58,24 @@ function ReceiptView({ profile, payment, onClose }) {
           )}
         </div>
 
-        {/* Printable Receipt Area */}
+        {/* Printable Official Receipt Certificate */}
         <div className="receipt-card printable-area" ref={printRef}>
-          {/* Maa Durga Background Watermark */}
+          {/* Guaranteed Inline Base64 Maa Durga Background Watermark */}
           <div className="watermark-container">
-            <img src="/maa_durga.jpg" alt="Maa Durga Watermark" className="durga-watermark-img" />
+            <img src={DURGA_IMAGE_BASE64} alt="Maa Durga Watermark" className="durga-watermark-img" />
           </div>
 
           <div className="receipt-header">
             <div className="header-logo-title">
-              <img src="/maa_durga.jpg" alt="Maa Durga Logo" className="durga-header-logo" />
+              <img src={DURGA_IMAGE_BASE64} alt="Maa Durga Logo" className="durga-header-logo" />
               <div>
                 <h1 className="committee-title">GGOFA DURGA PUJA COMMITTEE</h1>
                 <h2 className="event-subtitle">DURGA PUJA 2026 OFFICIAL CONTRIBUTION RECEIPT</h2>
-                <p className="reg-info">Registration & Society Management Portal</p>
+                <p className="reg-info">Society Registration & Contribution Portal</p>
               </div>
             </div>
             <div className="receipt-badge-status">
-              PAYMENT VERIFIED
+              VERIFIED ✅
             </div>
           </div>
 
@@ -107,7 +106,7 @@ function ReceiptView({ profile, payment, onClose }) {
               <tbody>
                 <tr>
                   <td className="td-label">Flat Number:</td>
-                  <td className="td-val font-bold">{profile.flat_number}</td>
+                  <td className="td-val font-bold">FLAT {profile.flat_number}</td>
                   <td className="td-label">Phase / Block:</td>
                   <td className="td-val">Phase {profile.phase} | Block {profile.block}</td>
                 </tr>
@@ -129,16 +128,15 @@ function ReceiptView({ profile, payment, onClose }) {
 
           <div className="blessing-banner">
             <p>🌺 <i>"Sarva Mangala Mangalye Shive Sarvartha Sadhike, Sharanye Tryambake Gauri Narayani Namostute"</i> 🌺</p>
-            <p className="sub-blessing">May Goddess Durga bless you and your family with Health, Wealth & Happiness!</p>
+            <p className="sub-blessing">May Goddess Durga Bless You and Your Family with Peace, Health & Prosperity!</p>
           </div>
 
           <div className="receipt-footer">
-            <div className="sign-box">
-              <div className="qr-badge">
-                <img src={`https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=${encodeURIComponent(receiptNum)}`} alt="QR Verification" />
-                <span>Scan to Verify</span>
-              </div>
+            <div className="qr-badge">
+              <img src={`https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=${encodeURIComponent(receiptNum)}`} alt="QR Verification" />
+              <span>Scan to Verify</span>
             </div>
+            
             <div className="seal-box">
               <div className="committee-stamp">
                 <span>GGOFA</span>

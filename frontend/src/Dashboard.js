@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { api } from './api';
 import ReceiptView from './ReceiptView';
+import { DURGA_IMAGE_BASE64 } from './durga_b64';
 
 function Dashboard({ token, onLogout }) {
   const [profile, setProfile] = useState({});
@@ -33,7 +34,7 @@ function Dashboard({ token, onLogout }) {
     setIsSubmitting(true);
     setMsg('');
     try {
-      const res = await api.recordPayment(token, profile.flat_number, 500, 'UPI', customRef || `UPI-${Date.now()}`);
+      const res = await api.recordPayment(token, profile.flat_number, 2500, 'UPI', customRef || `UPI-${Date.now()}`);
       setMsg(`✅ Payment Recorded! Receipt Number: ${res.receipt_number}`);
       setShowQrModal(false);
       await loadProfile();
@@ -73,7 +74,7 @@ function Dashboard({ token, onLogout }) {
       {/* Top Welcome Banner */}
       <div className="welcome-banner glass-card 3d-tilt">
         <div className="banner-left">
-          <img src="/maa_durga.jpg" alt="Maa Durga" className="banner-durga-img" />
+          <img src={DURGA_IMAGE_BASE64} alt="Maa Durga" className="banner-durga-img" />
           <div>
             <span className="welcome-tag">WELCOME RESIDENT</span>
             <h2>{profile.owner_name}</h2>
@@ -102,19 +103,20 @@ function Dashboard({ token, onLogout }) {
           <div className="card-content">
             <div className="amount-display">
               <span className="currency">₹</span>
-              <span className="amount">500</span>
-              <span className="note">Official Society Contribution</span>
+              <span className="amount">2500</span>
+              <span className="note">Minimum Official Contribution per Flat</span>
             </div>
 
             {profile.payment ? (
               <div className="paid-summary-box">
                 <p><strong>Receipt No:</strong> {profile.payment.receipt_number}</p>
+                <p><strong>Amount Paid:</strong> ₹{profile.payment.amount || 2500}/-</p>
                 <p><strong>Date:</strong> {profile.payment.date}</p>
                 <p><strong>Txn Ref:</strong> {profile.payment.transaction_ref}</p>
                 
                 <div className="paid-actions">
                   <button className="btn-gold" onClick={() => setShowReceipt(true)}>
-                    📜 View & Download Receipt
+                    📜 View & Download Official Receipt
                   </button>
                 </div>
               </div>
@@ -123,7 +125,7 @@ function Dashboard({ token, onLogout }) {
                 <p className="pay-instruction">Scan GGOFA Official UPI QR code or pay via UPI/Cash</p>
                 <div className="btn-group-pay">
                   <button className="btn-gold" onClick={() => setShowQrModal(true)}>
-                    📲 Scan UPI QR & Pay
+                    📲 Scan UPI QR & Pay ₹2,500
                   </button>
                   <button className="btn-primary" onClick={handlePay} disabled={isSubmitting}>
                     ⚡ Quick Confirm Payment
@@ -164,7 +166,7 @@ function Dashboard({ token, onLogout }) {
               </div>
             ) : (
               <div className="coupon-request-box">
-                <p>Registered residents who have paid the Puja contribution receive official Bhog coupons for Prasad distribution.</p>
+                <p>Registered residents who have completed their Puja contribution (₹2,500) receive official Bhog coupons for Prasad distribution.</p>
                 <button 
                   className="btn-purple" 
                   onClick={handleCouponRequest} 
@@ -187,14 +189,14 @@ function Dashboard({ token, onLogout }) {
             
             <div className="qr-image-wrapper">
               <img 
-                src={`https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent('upi://pay?pa=ggofapuja@upi&pn=GGOFA%20Durga%20Puja%20Committee&am=500&cu=INR')}`} 
+                src={`https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent('upi://pay?pa=ggofapuja@upi&pn=GGOFA%20Durga%20Puja%20Committee&am=2500&cu=INR')}`} 
                 alt="GGOFA UPI QR Code" 
               />
             </div>
             
             <div className="upi-details">
               <p><strong>UPI ID:</strong> ggofapuja@upi</p>
-              <p><strong>Amount:</strong> ₹500</p>
+              <p><strong>Contribution Amount:</strong> ₹2,500</p>
             </div>
 
             <div className="form-group margin-top">
@@ -209,7 +211,7 @@ function Dashboard({ token, onLogout }) {
 
             <div className="modal-buttons">
               <button className="btn-gold" onClick={handlePay} disabled={isSubmitting}>
-                ✅ I Have Completed Payment
+                ✅ I Have Completed ₹2,500 Payment
               </button>
               <button className="btn-secondary" onClick={() => setShowQrModal(false)}>
                 Cancel

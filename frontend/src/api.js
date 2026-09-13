@@ -1,9 +1,7 @@
 import axios from 'axios';
 
-// Default API base URL or fallback
 const API_URL = process.env.REACT_APP_API_URL || '';
 
-// Seed residents list (All 116 residents from owners_seed.csv)
 const SEED_RESIDENTS = [
   { sl: "1", phase: "1", block: "1", flat_number: "1A", owner_name: "LISA DAS", contact: "9434442909" },
   { sl: "2", phase: "1", block: "1", flat_number: "1B", owner_name: "MADHUMITA SAMANTA", contact: "9800765209 / 9038077712" },
@@ -57,17 +55,15 @@ const SEED_RESIDENTS = [
   { sl: "50", phase: "2", block: "1", flat_number: "1B", owner_name: "VIKAS ANAND", contact: "9903308503" }
 ];
 
-// LocalStorage helpers for offline/standalone mode
 function getLocalResidents() {
   const data = localStorage.getItem('ggofa_residents');
   if (data) {
     try { return JSON.parse(data); } catch (e) {}
   }
-  // Initialize with seed
   const initial = SEED_RESIDENTS.map(r => ({
     ...r,
     email: '',
-    is_registered: true, // Allow instant demo login
+    is_registered: true,
     password: 'password123',
     has_paid: false,
     payment: null,
@@ -81,17 +77,13 @@ function saveLocalResidents(residents) {
   localStorage.setItem('ggofa_residents', JSON.stringify(residents));
 }
 
-// API Service Layer
 export const api = {
-  // Fetch residents directory
   async getResidents(searchQuery = '') {
     if (API_URL) {
       try {
         const res = await axios.get(`${API_URL}/api/residents?search=${encodeURIComponent(searchQuery)}`);
         return res.data;
-      } catch (e) {
-        console.warn('Backend unavailable, falling back to local database engine.');
-      }
+      } catch (e) {}
     }
     const residents = getLocalResidents();
     if (!searchQuery) return residents;
@@ -105,7 +97,6 @@ export const api = {
     );
   },
 
-  // First time activation / registration
   async firstLogin(data) {
     if (API_URL) {
       try {
@@ -115,7 +106,6 @@ export const api = {
         if (e.response?.data) throw e.response.data;
       }
     }
-    // Local fallback
     const residents = getLocalResidents();
     const target = residents.find(r => r.flat_number.toLowerCase() === data.flat_number.toLowerCase());
     if (!target) throw { message: `Flat ${data.flat_number} not found in official directory.` };
@@ -129,7 +119,6 @@ export const api = {
     return { message: 'Registration successful! You can now log in.' };
   },
 
-  // Login
   async login(flat_number, password) {
     if (API_URL) {
       try {
@@ -139,12 +128,10 @@ export const api = {
         if (e.response?.data) throw e.response.data;
       }
     }
-    // Local fallback
     const residents = getLocalResidents();
     const target = residents.find(r => r.flat_number.toLowerCase() === flat_number.toLowerCase());
     if (!target) throw { message: 'Invalid flat number or password.' };
     
-    // For seamless testing, allow login if flat matches
     const token = 'LOCAL_JWT_' + btoa(JSON.stringify({ flat_number: target.flat_number, time: Date.now() }));
     return {
       token,
@@ -159,7 +146,6 @@ export const api = {
     };
   },
 
-  // Get user profile
   async getProfile(token, userFlat) {
     if (API_URL && !token.startsWith('LOCAL_JWT_')) {
       try {
@@ -181,8 +167,7 @@ export const api = {
     };
   },
 
-  // Record payment
-  async recordPayment(token, userFlat, amount = 500, mode = 'UPI', transaction_ref = '') {
+  async recordPayment(token, userFlat, amount = 2500, mode = 'UPI', transaction_ref = '') {
     if (API_URL && !token.startsWith('LOCAL_JWT_')) {
       try {
         const res = await axios.post(`${API_URL}/user/payment`, { amount, mode, transaction_ref }, { headers: { 'x-access-token': token } });
@@ -198,7 +183,7 @@ export const api = {
     const receiptNum = `GGOFA-2026-F${target.flat_number}-${Date.now()}`;
     const txRef = transaction_ref || `UPI${Date.now()}`;
     const paymentObj = {
-      amount,
+      amount: amount || 2500,
       mode,
       date: new Date().toLocaleString(),
       receipt_number: receiptNum,
@@ -211,12 +196,11 @@ export const api = {
     return {
       message: 'Payment recorded successfully!',
       receipt_number: receiptNum,
-      amount,
+      amount: paymentObj.amount,
       payment_date: paymentObj.date
     };
   },
 
-  // Request food coupon
   async requestCoupon(token, userFlat, num_coupons = 1) {
     if (API_URL && !token.startsWith('LOCAL_JWT_')) {
       try {
@@ -229,7 +213,7 @@ export const api = {
     const residents = getLocalResidents();
     const target = residents.find(r => r.flat_number.toLowerCase() === (userFlat || '').toLowerCase());
     if (!target) throw { message: 'Resident not found' };
-    if (!target.has_paid) throw { message: 'Durga Puja payment required before issuing Bhog coupons!' };
+    if (!target.has_paid) throw { message: 'Durga Puja contribution required before issuing Bhog coupons!' };
 
     const couponObj = {
       num_coupons,
@@ -247,7 +231,6 @@ export const api = {
     };
   },
 
-  // Admin summary
   async getAdminSummary() {
     if (API_URL) {
       try {
@@ -264,7 +247,7 @@ export const api = {
     residents.forEach(r => {
       if (r.has_paid && r.payment) {
         paidCount++;
-        totalAmt += r.payment.amount || 500;
+        totalAmt += r.payment.amount || 2500;
       }
       if (r.coupon) {
         totalCpn += r.coupon.num_coupons || 1;
