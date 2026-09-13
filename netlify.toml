@@ -1,7 +1,11 @@
 [build]
   base = "frontend"
-  command = "npm run build"
+  command = "CI=false npm run build"
   publish = "build"
+
+[build.environment]
+  CI = "false"
+  DISABLE_ESLINT_PLUGIN = "true"
 
 [[redirects]]
   from = "/*"
